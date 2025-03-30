@@ -58,7 +58,7 @@ def translate_text_chunk(text, model_choice, delay=1):
                 model="persiannlp/mt5-small-parsinlu-opus-translation_fa_en",
                 token=os.getenv("HUGGINGFACE_TOKEN"))
             prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
-            return client.text_generation(prompt, max_new_tokens=2000, timeout=60)
+            return client.text_generation(prompt)
         else:
             openai.api_key = os.getenv("OPENAI_API_KEY")
             response = openai.ChatCompletion.create(
