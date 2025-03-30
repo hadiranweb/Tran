@@ -1,4 +1,5 @@
 import streamlit as st
+from openrouter import OpenRouter
 import fitz  # PyMuPDF
 from huggingface_hub import InferenceClient
 import openai
@@ -53,23 +54,29 @@ def translate_text_chunk(text, model_choice, delay=1):
     time.sleep(delay)  # مدیریت Rate Limit
     
     try:
-        if model_choice == "DeepSeek":
-            client = InferenceClient(
-                model="google/gemma-3-1b-it",
-                token=os.getenv("HUGGINGFACE_TOKEN"))
-            prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
-            return client.text_generation(prompt)
-        else:
-            openai.api_key = os.getenv("OPENAI_API_KEY")
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "مترجم حرفه‌ای فارسی"},
-                    {"role": "user", "content": text}
-                ],
-                timeout=30
-            )
-            return response.choices[0].message.content
+
+if model_choice == "DeepSeek":
+    client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
+    prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
+    response = client.chat.create(
+        model="deepseek-ai/deepseek-chat",  # یا مدل دیگری که می‌خواهید از OpenRouter استفاده کنید
+        messages=[
+            {"role": "system", "content": "تو یک مترجم حرفه‌ای هستی"},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content
+else:
+    client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
+    response = client.chat.create(
+        model="openai/gpt-3.5-turbo",  # استفاده از GPT-3.5 از طریق OpenRouter
+        messages=[
+            {"role": "system", "content": "مترجم حرفه‌ای فارسی"},
+            {"role": "user", "content": text}
+        ]
+    )
+    return response.choices[0].message.content
+    
     except Exception as e:
         st.error(f"خطا در ترجمه: {str(e)}")
         return f"[خطا در ترجمه این بخش: {str(e)}]"
