@@ -46,7 +46,7 @@ def translate_text_chunk(text, model_choice, delay=1):
     
     if model_choice == "DeepSeek":
         client = InferenceClient(
-            model="arvan/DeepSeek-VL-7B-v1.5-fa",
+            model="deepseek-ai/DeepSeek-V3-0324",
             token=os.getenv("HUGGINGFACE_TOKEN"))
         prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
         return client.text_generation(prompt, max_new_tokens=2000)
