@@ -89,7 +89,8 @@ def create_pdf(text, filename="ترجمه.pdf"):
     """ایجاد PDF از متن ترجمه‌شده"""
     pdf = FPDF()
     pdf.add_page()
-      try:
+    
+    try:
         pdf.add_font('Vazir', '', 'fonts/Vazirmatn-Regular.ttf')  # حذف پارامتر uni
         pdf.add_font('VazirB', 'B', 'fonts/Vazirmatn-Bold.ttf')  # حذف پارامتر uni
         pdf.set_font('Vazir', size=12)
