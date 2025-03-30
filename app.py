@@ -1,16 +1,12 @@
 import streamlit as st
 from openrouter import OpenRouter
 import fitz  # PyMuPDF
-from huggingface_hub import InferenceClient
-import openai
 import time
 import os
 from dotenv import load_dotenv
 from fpdf import FPDF
-import tempfile
 import concurrent.futures
-from functools import partial
-import json
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 # --- تنظیمات اولیه ---
 load_dotenv()
@@ -46,36 +42,33 @@ def process_srt_file(uploaded_file):
     blocks = content.split('\n\n')
     return [block.split('\n')[2] for block in blocks if len(block.split('\n')) >= 3]
 
-from tenacity import retry, stop_after_attempt, wait_exponential
-
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def translate_text_chunk(text, model_choice, delay=1):
     """ترجمه هر بخش متن با مدیریت خطا و قابلیت تلاش مجدد"""
     time.sleep(delay)  # مدیریت Rate Limit
     
-if model_choice == "DeepSeek":
-    client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
-    prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
-    response = client.chat.create(
-        model="deepseek/deepseek-v3-base:free",  # یا مدل دیگری که می‌خواهید از OpenRouter استفاده کنید
-        messages=[
-            {"role": "system", "content": "تو یک مترجم حرفه‌ای هستی"},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return response.choices[0].message.content
-else:
-    client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
-    response = client.chat.create(
-        model="openai/gpt-3.5-turbo-0613",  # استفاده از GPT-3.5 از طریق OpenRouter
-        messages=[
-            {"role": "system", "content": "مترجم حرفه‌ای فارسی"},
-            {"role": "user", "content": text}
-        ]
-    )
-    return response.choices[0].message.content
-    
-      except Exception as e:
+    try:
+        client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
+        
+        if model_choice == "DeepSeek":
+            model_name = "deepseek-ai/deepseek-chat"
+            system_message = "تو یک مترجم حرفه‌ای هستی"
+        else:
+            model_name = "openai/gpt-3.5-turbo"
+            system_message = "مترجم حرفه‌ای فارسی"
+        
+        prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
+        
+        response = client.chat.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        return response.choices[0].message.content
+        
+    except Exception as e:
         st.error(f"خطا در ترجمه: {str(e)}")
         return f"[خطا در ترجمه این بخش: {str(e)}]"
 
@@ -87,7 +80,6 @@ def parallel_translate(chunks, model_choice, max_workers=4):
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {}
         for i, chunk in enumerate(chunks):
-            # تاخیرهای متفاوت برای هر worker
             delay = (i % max_workers) * delay_per_worker
             future = executor.submit(
                 translate_text_chunk, 
@@ -101,7 +93,6 @@ def parallel_translate(chunks, model_choice, max_workers=4):
             index = future_to_index[future]
             try:
                 translated_chunks[index] = future.result()
-                # نمایش پیشرفت
                 progress = (sum(1 for x in translated_chunks if x is not None)) / len(chunks)
                 st.session_state['progress'] = progress
             except Exception as e:
@@ -114,23 +105,16 @@ def create_pdf(text, filename="ترجمه.pdf"):
     pdf = FPDF()
     pdf.add_page()
     
-    # استفاده از فونت‌های استاندارد اگر فونت سفارشی وجود ندارد
     try:
-        # اضافه کردن فونت‌ها از مسیر کامل
         font_path = os.path.join(os.path.dirname(__file__), 'fonts')
-        pdf.add_font('Vazir', '', os.path.join(font_path, 'Vazirmatn-Regular.ttf'))
-        pdf.add_font('VazirB', 'B', os.path.join(font_path, 'Vazirmatn-Bold.ttf'))
+        pdf.add_font('Vazir', '', os.path.join(font_path, 'Vazirmatn-Regular.ttf'), uni=True)
         pdf.set_font('Vazir', size=12)
-    except Exception as e:
-        st.warning("فونت فارسی یافت نشد. از فونت استاندارد استفاده می‌شود.")
+    except:
         pdf.set_font("helvetica", size=12)
     
-    pdf.multi_cell(0, 10, text=text, align="R")
-    return pdf.output()
-    
-    pdf.multi_cell(0, 10, text=text, align="R")
-    return pdf.output()
-    
+    pdf.multi_cell(0, 10, txt=text, align="R")
+    return pdf.output(dest='S').encode('latin1')
+
 # --- رابط کاربری ---
 with st.sidebar:
     st.header("تنظیمات پیشرفته")
@@ -159,15 +143,15 @@ if uploaded_file:
     with st.expander("نمایش محتوای استخراج شده"):
         if file_type == "PDF":
             chunks = process_pdf_by_page(uploaded_file)
-            for i, chunk in enumerate(chunks[:3]):  # نمایش 3 صفحه اول
-                st.text(f"صفحه {i+1}:\n{chunk[:500]}...")  # نمایش بخشی از متن
+            for i, chunk in enumerate(chunks[:3]):
+                st.text(f"صفحه {i+1}:\n{chunk[:500]}...")
         elif file_type == "زیرنویس (SRT)":
             chunks = process_srt_file(uploaded_file)
             st.text(f"تعداد خطوط: {len(chunks)}")
-            st.text("\n".join(chunks[:5]))  # نمایش 5 خط اول
+            st.text("\n".join(chunks[:5]))
         else:
             chunks = [uploaded_file.read().decode("utf-8")]
-            st.text(chunks[0][:1000] + "...")  # نمایش بخشی از متن
+            st.text(chunks[0][:1000] + "...")
     
     st.info(f"🔍 {len(chunks)} بخش قابل پردازش شناسایی شد")
 
@@ -188,15 +172,12 @@ if uploaded_file:
                 status_text.text(f"در حال ترجمه بخش {i + 1}/{len(chunks)}...")
                 translated.append(translate_text_chunk(chunk, model_choice))
         
-        # نمایش نتایج
         full_translation = "\n\n".join(translated)
         result_area.text_area("ترجمه کامل", full_translation, height=400)
         
-        # اطلاعات پردازش
         elapsed_time = time.time() - start_time
         st.success(f"⏱️ ترجمه کامل شد! زمان پردازش: {elapsed_time:.2f} ثانیه")
         
-        # دانلود نتایج
         col1, col2 = st.columns(2)
         with col1:
             st.download_button(
@@ -213,5 +194,4 @@ if uploaded_file:
                 mime="text/plain"
             )
 
-        # ذخیره در حافظه موقت
         st.session_state['last_translation'] = full_translation
