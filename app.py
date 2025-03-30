@@ -89,15 +89,14 @@ def create_pdf(text, filename="ترجمه.pdf"):
     """ایجاد PDF از متن ترجمه‌شده"""
     pdf = FPDF()
     pdf.add_page()
-    
-  try:
-    pdf.add_font('Vazir', '', 'fonts/Vazirmatn-Regular.ttf')  # حذف پارامتر uni
-    pdf.add_font('VazirB', 'B', 'fonts/Vazirmatn-Bold.ttf')  # حذف پارامتر uni
-    pdf.set_font('Vazir', size=12)
-except Exception as e:
-    st.warning(f"خطا در بارگذاری فونت: {str(e)}")
-    pdf.add_font("Arial", "", "arial.ttf")  # مشخص کردن مسیر فایل فونت
-    pdf.set_font("Arial", size=12)
+      try:
+        pdf.add_font('Vazir', '', 'fonts/Vazirmatn-Regular.ttf')  # حذف پارامتر uni
+        pdf.add_font('VazirB', 'B', 'fonts/Vazirmatn-Bold.ttf')  # حذف پارامتر uni
+        pdf.set_font('Vazir', size=12)
+    except Exception as e:
+        st.warning(f"خطا در بارگذاری فونت: {str(e)}")
+        pdf.add_font("Arial", "", "arial.ttf")  # مشخص کردن مسیر فایل فونت
+        pdf.set_font("Arial", size=12)
     
     pdf.multi_cell(0, 10, txt=text, align="R")
     return pdf.output(dest='S').encode('latin1')
