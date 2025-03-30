@@ -19,10 +19,15 @@ st.title("📖 مترجم پیشرفته PDF و زیرنویس")
 # راست‌چین کردن متن فارسی
 st.markdown("""
 <style>
-p, div, h1, h2, h3, h4, h5, h6 {
+@font-face {
+    font-family: 'Vazir';
+    src: url('fonts/Vazirmatn-Regular.ttf') format('truetype');
+}
+
+body, p, div, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Vazir', 'B Nazanin', Tahoma, sans-serif !important;
     direction: rtl;
     text-align: right;
-    font-family: 'B Nazanin', 'Segoe UI', Tahoma, sans-serif;
 }
 </style>
 """, unsafe_allow_html=True)
