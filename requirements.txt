@@ -1,8 +1,7 @@
-streamlit>=1.28.0
-pymupdf>=1.22.0
-huggingface-hub>=0.17.0
-openai>=0.28.0
+streamlit>=1.32.0
+openrouter>=1.0.0
+pymupdf>=1.23.0
+fpdf2>=2.7.7
 python-dotenv>=1.0.0
-fpdf2>=1.7.2
-reportlab>=4.0.0
-transformers>=4.34.0
+tenacity>=8.2.3
+concurrent-log-handler>=0.9.24
