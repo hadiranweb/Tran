@@ -120,11 +120,11 @@ def create_pdf(text, filename="ترجمه.pdf"):
         st.warning("فونت فارسی یافت نشد. از فونت استاندارد استفاده می‌شود.")
         pdf.set_font("helvetica", size=12)
     
-    pdf.multi_cell(0, 10, txt=text, align="R")
-    return pdf.output(dest='S').encode('latin1')
+    pdf.multi_cell(0, 10, text=text, align="R")
+    return pdf.output()
     
-    pdf.multi_cell(0, 10, txt=text, align="R")
-    return pdf.output(dest='S').encode('latin1')
+    pdf.multi_cell(0, 10, text=text, align="R")
+    return pdf.output()
     
 # --- رابط کاربری ---
 with st.sidebar:
