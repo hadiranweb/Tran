@@ -1,5 +1,5 @@
 import streamlit as st
-from openrouter import OpenRouter
+import requests
 import fitz  # PyMuPDF
 import time
 import os
@@ -43,31 +43,27 @@ def process_srt_file(uploaded_file):
     return [block.split('\n')[2] for block in blocks if len(block.split('\n')) >= 3]
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-def translate_text_chunk(text, model_choice, delay=1):
-    """ترجمه هر بخش متن با مدیریت خطا و قابلیت تلاش مجدد"""
-    time.sleep(delay)  # مدیریت Rate Limit
-    
-    try:
-        client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
-        
-        if model_choice == "DeepSeek":
-            model_name = "deepseek-ai/deepseek-chat"
-            system_message = "تو یک مترجم حرفه‌ای هستی"
-        else:
-            model_name = "openai/gpt-3.5-turbo"
-            system_message = "مترجم حرفه‌ای فارسی"
-        
-        prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
-        
-        response = client.chat.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        return response.choices[0].message.content
-        
+def translate_text_chunk
+headers = {
+    "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+    "Content-Type": "application/json"
+}
+
+data = {
+    "model": "deepseek-ai/deepseek-chat" if model_choice == "DeepSeek" else "openai/gpt-3.5-turbo",
+    "messages": [
+        {"role": "system", "content": "تو یک مترجم حرفه‌ای هستی"},
+        {"role": "user", "content": f"متن زیر را به فارسی روان ترجمه کن:\n{text}"}
+    ]
+}
+
+response = requests.post(
+    "https://openrouter.ai/api/v1/chat/completions",
+    headers=headers,
+    json=data
+)
+return response.json()["choices"][0]["message"]["content"]
+
     except Exception as e:
         st.error(f"خطا در ترجمه: {str(e)}")
         return f"[خطا در ترجمه این بخش: {str(e)}]"
