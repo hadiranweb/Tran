@@ -69,7 +69,7 @@ if model_choice == "DeepSeek":
 else:
     client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
     response = client.chat.create(
-        model="openai/gpt-3.5-turbo",  # استفاده از GPT-3.5 از طریق OpenRouter
+        model="openai/gpt-3.5-turbo-0613",  # استفاده از GPT-3.5 از طریق OpenRouter
         messages=[
             {"role": "system", "content": "مترجم حرفه‌ای فارسی"},
             {"role": "user", "content": text}
