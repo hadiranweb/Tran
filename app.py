@@ -45,43 +45,63 @@ def process_srt_file(uploaded_file):
     blocks = content.split('\n\n')
     return [block.split('\n')[2] for block in blocks if len(block.split('\n')) >= 3]
 
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def translate_text_chunk(text, model_choice, delay=1):
-    """ترجمه هر بخش متن با تاخیر"""
+    """ترجمه هر بخش متن با مدیریت خطا و قابلیت تلاش مجدد"""
     time.sleep(delay)  # مدیریت Rate Limit
     
-    if model_choice == "DeepSeek":
-        client = InferenceClient(
-            model="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-            token=os.getenv("HUGGINGFACE_TOKEN"))
-        prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
-        return client.text_generation(prompt, max_new_tokens=2000)
-    else:
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "مترجم حرفه‌ای فارسی"},
-                {"role": "user", "content": text}
-            ]
-        )
-        return response.choices[0].message.content
+    try:
+        if model_choice == "DeepSeek":
+            client = InferenceClient(
+                model="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+                token=os.getenv("HUGGINGFACE_TOKEN"))
+            prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
+            return client.text_generation(prompt, max_new_tokens=2000, timeout=60)
+        else:
+            openai.api_key = os.getenv("OPENAI_API_KEY")
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "مترجم حرفه‌ای فارسی"},
+                    {"role": "user", "content": text}
+                ],
+                timeout=30
+            )
+            return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"خطا در ترجمه: {str(e)}")
+        return f"[خطا در ترجمه این بخش: {str(e)}]"
 
 def parallel_translate(chunks, model_choice, max_workers=4):
-    """پردازش موازی با ThreadPool"""
+    """پردازش موازی پیشرفته با مدیریت خطا و تاخیرهای هوشمند"""
     translated_chunks = [None] * len(chunks)
+    delay_per_worker = 2  # تاخیر بین درخواست‌ها برای هر worker
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_index = {
-            executor.submit(translate_text_chunk, chunk, model_choice): i 
-            for i, chunk in enumerate(chunks)
-        }
+        future_to_index = {}
+        for i, chunk in enumerate(chunks):
+            # تاخیرهای متفاوت برای هر worker
+            delay = (i % max_workers) * delay_per_worker
+            future = executor.submit(
+                translate_text_chunk, 
+                chunk, 
+                model_choice,
+                delay
+            )
+            future_to_index[future] = i
         
         for future in concurrent.futures.as_completed(future_to_index):
             index = future_to_index[future]
             try:
                 translated_chunks[index] = future.result()
+                # نمایش پیشرفت
+                progress = (sum(1 for x in translated_chunks if x is not None)) / len(chunks)
+                st.session_state['progress'] = progress
             except Exception as e:
                 translated_chunks[index] = f"خطا در ترجمه: {str(e)}"
+                st.error(f"خطا در ترجمه بخش {index + 1}: {str(e)}")
     
     return translated_chunks
 
