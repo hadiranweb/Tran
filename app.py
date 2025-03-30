@@ -51,8 +51,9 @@ def translate_text_chunk(text, model_choice, delay=1):
     
     if model_choice == "DeepSeek":
         client = InferenceClient(
-            model="deepseek-ai/DeepSeek-V3-0324",
+            model="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
             token=os.getenv("HUGGINGFACE_TOKEN"))
+            timeout=500  # افزایش زمان انتظار
         prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
         return client.text_generation(prompt, max_new_tokens=2000)
     else:
