@@ -151,7 +151,7 @@ uploaded_file = st.file_uploader(
 if uploaded_file:
     st.success(f"✅ فایل {uploaded_file.name} با موفقیت آپلود شد!")
     
-   with st.expander("نمایش محتوای استخراج شده"):
+    with st.expander("نمایش محتوای استخراج شده"):
         if file_type == "PDF":
             chunks = process_pdf_by_page(uploaded_file)
             for i, chunk in enumerate(chunks[:3]):  # نمایش 3 صفحه اول
