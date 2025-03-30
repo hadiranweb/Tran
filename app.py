@@ -59,7 +59,7 @@ if model_choice == "DeepSeek":
     client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
     prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
     response = client.chat.create(
-        model="deepseek-ai/deepseek-chat",  # یا مدل دیگری که می‌خواهید از OpenRouter استفاده کنید
+        model="deepseek/deepseek-v3-base:free",  # یا مدل دیگری که می‌خواهید از OpenRouter استفاده کنید
         messages=[
             {"role": "system", "content": "تو یک مترجم حرفه‌ای هستی"},
             {"role": "user", "content": prompt}
