@@ -86,18 +86,22 @@ def parallel_translate(chunks, model_choice, max_workers=4):
     return translated_chunks
 
 def create_pdf(text, filename="ترجمه.pdf"):
-    """ایجاد PDF از متن ترجمه‌شده"""
     pdf = FPDF()
     pdf.add_page()
     
+    # استفاده از فونت‌های استاندارد اگر فونت سفارشی وجود ندارد
     try:
-        pdf.add_font('Vazir', '', 'fonts/Vazirmatn-Regular.ttf')  # حذف پارامتر uni
-        pdf.add_font('VazirB', 'B', 'fonts/Vazirmatn-Bold.ttf')  # حذف پارامتر uni
+        # اضافه کردن فونت‌ها از مسیر کامل
+        font_path = os.path.join(os.path.dirname(__file__), 'fonts')
+        pdf.add_font('Vazir', '', os.path.join(font_path, 'Vazirmatn-Regular.ttf'))
+        pdf.add_font('VazirB', 'B', os.path.join(font_path, 'Vazirmatn-Bold.ttf'))
         pdf.set_font('Vazir', size=12)
     except Exception as e:
-        st.warning(f"خطا در بارگذاری فونت: {str(e)}")
-        pdf.add_font("Arial", "", "arial.ttf")  # مشخص کردن مسیر فایل فونت
-        pdf.set_font("Arial", size=12)
+        st.warning("فونت فارسی یافت نشد. از فونت استاندارد استفاده می‌شود.")
+        pdf.set_font("helvetica", size=12)
+    
+    pdf.multi_cell(0, 10, txt=text, align="R")
+    return pdf.output(dest='S').encode('latin1')
     
     pdf.multi_cell(0, 10, txt=text, align="R")
     return pdf.output(dest='S').encode('latin1')
@@ -127,13 +131,18 @@ uploaded_file = st.file_uploader(
 if uploaded_file:
     st.success(f"✅ فایل {uploaded_file.name} با موفقیت آپلود شد!")
     
-    # استخراج محتوا بر اساس نوع فایل
-    if file_type == "PDF":
-        chunks = process_pdf_by_page(uploaded_file)
-    elif file_type == "زیرنویس (SRT)":
-        chunks = process_srt_file(uploaded_file)
-    else:
-        chunks = [uploaded_file.read().decode("utf-8")]
+   with st.expander("نمایش محتوای استخراج شده"):
+        if file_type == "PDF":
+            chunks = process_pdf_by_page(uploaded_file)
+            for i, chunk in enumerate(chunks[:3]):  # نمایش 3 صفحه اول
+                st.text(f"صفحه {i+1}:\n{chunk[:500]}...")  # نمایش بخشی از متن
+        elif file_type == "زیرنویس (SRT)":
+            chunks = process_srt_file(uploaded_file)
+            st.text(f"تعداد خطوط: {len(chunks)}")
+            st.text("\n".join(chunks[:5]))  # نمایش 5 خط اول
+        else:
+            chunks = [uploaded_file.read().decode("utf-8")]
+            st.text(chunks[0][:1000] + "...")  # نمایش بخشی از متن
     
     st.info(f"🔍 {len(chunks)} بخش قابل پردازش شناسایی شد")
 
