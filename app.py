@@ -86,15 +86,17 @@ def create_pdf(text, filename="ترجمه.pdf"):
     pdf.add_page()
     
     try:
-        pdf.add_font("Persian", "", "fonts/arial.ttf", uni=True)
-        pdf.set_font("Persian", size=12)
-    except:
+        pdf.add_font('Vazir', '', 'fonts/Vazirmatn-Regular.ttf', uni=True)
+        pdf.add_font('VazirB', 'B', 'fonts/Vazirmatn-Bold.ttf', uni=True)
+        pdf.set_font('Vazir', size=12)
+    except Exception as e:
+        st.warning(f"خطا در بارگذاری فونت: {str(e)}")
         pdf.add_font("Arial", "", uni=True)
         pdf.set_font("Arial", size=12)
     
     pdf.multi_cell(0, 10, txt=text, align="R")
     return pdf.output(dest='S').encode('latin1')
-
+    
 # --- رابط کاربری ---
 with st.sidebar:
     st.header("تنظیمات پیشرفته")
