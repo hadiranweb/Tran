@@ -53,8 +53,6 @@ def translate_text_chunk(text, model_choice, delay=1):
     """ترجمه هر بخش متن با مدیریت خطا و قابلیت تلاش مجدد"""
     time.sleep(delay)  # مدیریت Rate Limit
     
-    try:
-
 if model_choice == "DeepSeek":
     client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY"))
     prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
