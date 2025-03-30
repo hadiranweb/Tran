@@ -75,7 +75,7 @@ else:
     )
     return response.choices[0].message.content
     
-    except Exception as e:
+except Exception as e:
         st.error(f"خطا در ترجمه: {str(e)}")
         return f"[خطا در ترجمه این بخش: {str(e)}]"
 
