@@ -55,7 +55,7 @@ def translate_text_chunk(text, model_choice, delay=1):
     try:
         if model_choice == "DeepSeek":
             client = InferenceClient(
-                model="persiannlp/mt5-small-parsinlu-opus-translation_fa_en",
+                model="google/gemma-3-1b-it",
                 token=os.getenv("HUGGINGFACE_TOKEN"))
             prompt = f"متن زیر را به فارسی روان ترجمه کن:\n{text}"
             return client.text_generation(prompt)
